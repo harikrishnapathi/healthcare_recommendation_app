@@ -4,16 +4,6 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.preprocessing import OneHotEncoder
 
 # Load dataset
-df = pd.read_csv('healthcare_data_updated.csv')
-
-# Features
-basic_features = ['age', 'bmi', 'bp_systolic', 'bp_diastolic', 'heart_rate', 'glucose', 'cholesterol', 'sleep_hours']
-categorical_features = ['smoking', 'alcohol', 'exercise_level', 'gender', 'medical_history', 'stress_level']
-
-all_features = basic_features + categorical_features
-target = 'health_risk'
-
-
 
 
 # Existing Inputs...
@@ -22,6 +12,14 @@ cholesterol = st.sidebar.number_input("Cholesterol Level (mg/dL)", 100, 300, 200
 medical_history = st.sidebar.selectbox("Family Medical History of Disease", ["Yes", "No"])
 sleep_hours = st.sidebar.slider("Average Sleep Hours per Night", 0, 12, 7)
 stress_level = st.sidebar.selectbox("Stress Level", ["Low", "Moderate", "High"])
+
+df = pd.read_csv('healthcare_data_updated.csv')
+
+# Features
+basic_features = ['age', 'bmi', 'bp_systolic', 'bp_diastolic', 'heart_rate', 'glucose']
+categorical_features = ['smoking', 'alcohol', 'exercise_level']
+all_features = basic_features + categorical_features
+target = 'health_risk'
 
 # One-hot encode categorical columns
 df_encoded = pd.get_dummies(df[all_features])
@@ -32,13 +30,14 @@ y = df[target]
 model = RandomForestClassifier()
 model.fit(X, y)
 
-
-
-
 # Recommendation function
 # Update recommendation logic for stress or sleep
-def generate_recommendation(risk_level, stress, sleep):
+def generate_recommendation(risk_level, sleep, stress):
+    
+    sleep = float(sleep)  # ✅ Convert to number before comparing
+    
     advice = ""
+    
     if risk_level == 'High':
         advice += "⚠️ High Risk: Immediate doctor consultation, strict diet, regular check-ups.\n"
     elif risk_level == 'Medium':
@@ -59,8 +58,7 @@ def generate_recommendation(risk_level, stress, sleep):
     return advice
 
 
-
-# Diet Plan Function
+#diet plan
 def get_diet_plan(age):
     if age < 18:
         return "🍎 Diet Plan: Plenty of fruits, milk, lean proteins, avoid junk food."
@@ -70,6 +68,7 @@ def get_diet_plan(age):
         return "🍛 Diet Plan: Balanced diet with focus on heart health, nuts, moderate carbs."
     else:
         return "🍵 Diet Plan: Light meals, more fruits, calcium, vitamin D, and hydration."
+
 # ------------------------
 # Streamlit Interface
 # ------------------------
@@ -92,7 +91,7 @@ alcohol = st.sidebar.selectbox("Alcohol Consumption", ["None", "Moderate", "High
 exercise_level = st.sidebar.selectbox("Exercise Level", ["Low", "Moderate", "High"])
 
 # Prediction Button
-if st.sidebar.button("Get Health Recommendation"):
+if st.sidebar.button("Get Health Recommendation and diet plan"):
     
     new_data = pd.DataFrame({
     'age': [age],
@@ -107,11 +106,10 @@ if st.sidebar.button("Get Health Recommendation"):
     'gender': [gender],
     'cholesterol': [cholesterol],
     'medical_history': [medical_history],
-    'sleep_hours': [sleep_hours],
+    'sleep_hours': [float(sleep_hours)],
     'stress_level': [stress_level]
-    }) 
+})
 
-    
     # One-hot encode new data to match training columns
     new_data_encoded = pd.get_dummies(new_data)
     
@@ -123,10 +121,11 @@ if st.sidebar.button("Get Health Recommendation"):
     
     # Predict
     risk = model.predict(new_data_encoded)[0]
-    recommendation = generate_recommendation(risk,stress_level,sleep_hours)
+    recommendation = generate_recommendation(risk,sleep_hours,stress_level)
     diet_plan = get_diet_plan(age)
 
     
     st.subheader(f"Predicted Health Risk: {risk}")
     st.success(recommendation)
     st.info(diet_plan)
+
